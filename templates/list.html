@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>My Grocery List</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+
+    <header>
+        <a href="/" class="back-link">← Back</a>
+        <h1>My Grocery List</h1>
+        <p>Type or speak your items — separate with commas</p>
+    </header>
+
+    <main>
+        {% if error %}
+        <div class="error-message">{{ error }}</div>
+        {% endif %}
+
+        <form action="/results" method="POST">
+            <div class="input-container">
+                <textarea 
+                    name="grocery_list" 
+                    id="grocery-input"
+                    placeholder="e.g. milk, pasta, chicken, olive oil..."
+                    rows="4"
+                ></textarea>
+
+                <button type="button" id="voice-btn" onclick="startVoice()">
+                    🎤 Speak
+                </button>
+            </div>
+
+            <div class="items-preview" id="items-preview"></div>
+
+            <button type="submit" class="btn-primary">
+                Find best store →
+            </button>
+        </form>
+    </main>
+
+    <script>
+        const input = document.getElementById('grocery-input');
+        const preview = document.getElementById('items-preview');
+
+        // Show items as tags while typing
+        input.addEventListener('input', function() {
+            updatePreview();
+        });
+
+        function updatePreview() {
+            const items = input.value.split(',').filter(i => i.trim());
+            preview.innerHTML = items.map(item => 
+                `<span class="item-tag">${item.trim()}</span>`
+            ).join('');
+        }
+
+        // Voice input
+        function startVoice() {
+            if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
+                alert('Voice input not supported in this browser. Please use Chrome.');
+                return;
+            }
+
+            const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+            const recognition = new SpeechRecognition();
+            
+            recognition.lang = 'fr-FR';
+            recognition.continuous = false;
+            recognition.interimResults = false;
+
+            const btn = document.getElementById('voice-btn');
+            btn.textContent = '🔴 Listening...';
+            btn.style.background = '#ff4444';
+
+            recognition.onresult = function(event) {
+                const spoken = event.results[0][0].transcript;
+                if (input.value) {
+                    input.value += ', ' + spoken;
+                } else {
+                    input.value = spoken;
+                }
+                updatePreview();
+                btn.textContent = '🎤 Speak';
+                btn.style.background = '';
+            };
+
+            recognition.onerror = function() {
+                btn.textContent = '🎤 Speak';
+                btn.style.background = '';
+            };
+
+            recognition.onend = function() {
+                btn.textContent = '🎤 Speak';
+                btn.style.background = '';
+            };
+
+            recognition.start();
+        }
+    </script>
+
+</body>
+</html>

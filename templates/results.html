@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Results</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+
+    <header>
+        <a href="/list" class="back-link">← New search</a>
+        <h1>Your recommendation</h1>
+    </header>
+
+    <main>
+        {% if recommendation %}
+
+        <!-- Best store recommendation -->
+        <section class="recommendation-card">
+            <div class="recommendation-badge">Best choice this week</div>
+            <h2>Go to {{ recommendation.recommendation.store_name }}</h2>
+            <p class="savings">You save €{{ recommendation.recommendation.total_savings }}</p>
+            <p class="items-matched">
+                {{ recommendation.recommendation.items_matched }} item(s) on promotion
+            </p>
+        </section>
+
+        <!-- Matched items -->
+        {% if recommendation.recommendation.matched_items %}
+        <section class="matched-items">
+            <h3>Items on promotion at {{ recommendation.recommendation.store_name }}</h3>
+            <div class="items-grid">
+                {% for item in recommendation.recommendation.matched_items %}
+                <div class="item-card">
+                    <div class="item-name">{{ item.product_found }}</div>
+                    <div class="item-prices">
+                        {% if item.original_price %}
+                        <span class="original-price">€{{ item.original_price }}</span>
+                        {% endif %}
+                        <span class="promo-price">€{{ item.promo_price }}</span>
+                        <span class="discount-badge">{{ item.discount }}</span>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </section>
+        {% endif %}
+
+        <!-- All stores comparison -->
+        <section class="all-stores">
+            <h3>All stores comparison</h3>
+            <div class="stores-comparison">
+                {% for store in recommendation.all_stores %}
+                <div class="store-row {% if loop.first %}best-store{% endif %}">
+                    <span class="store-rank">#{{ loop.index }}</span>
+                    <span class="store-name">{{ store.store_name }}</span>
+                    <span class="store-matches">{{ store.items_matched }} items</span>
+                    <span class="store-savings">
+                        {% if store.total_savings > 0 %}
+                            Save €{{ store.total_savings }}
+                        {% else %}
+                            No deals found
+                        {% endif %}
+                    </span>
+                </div>
+                {% endfor %}
+            </div>
+        </section>
+
+        <!-- Your grocery list -->
+        <section class="grocery-list-summary">
+            <h3>Your grocery list</h3>
+            <div class="items-tags">
+                {% for item in grocery_items %}
+                <span class="item-tag">{{ item }}</span>
+                {% endfor %}
+            </div>
+        </section>
+
+        {% else %}
+        <div class="no-results">
+            <h2>No results found</h2>
+            <p>Try different items or make sure your stores are selected.</p>
+            <a href="/list" class="btn-primary">Try again</a>
+        </div>
+        {% endif %}
+
+        <a href="/list" class="btn-primary">Search again</a>
+    </main>
+
+</body>
+</html>

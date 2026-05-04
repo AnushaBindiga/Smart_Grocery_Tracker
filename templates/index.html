@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Smart Grocery Tracker</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+
+    <header>
+        <h1>Smart Grocery Tracker</h1>
+        <p>Find the best supermarket deals for your grocery list</p>
+    </header>
+
+    <main>
+        <section class="store-selector">
+            <h2>Which stores are near you?</h2>
+            <p>Select the supermarkets in your area</p>
+
+            <form id="store-form">
+                <div class="stores-grid">
+                    {% for store in stores %}
+                    <label class="store-card {% if store[2] %}selected{% endif %}">
+                        <input type="checkbox" 
+                               name="stores" 
+                               value="{{ store[0] }}"
+                               {% if store[2] %}checked{% endif %}>
+                        <span class="store-name">{{ store[1] }}</span>
+                    </label>
+                    {% endfor %}
+                </div>
+
+                <button type="button" onclick="saveStores()" class="btn-primary">
+                    Save my stores
+                </button>
+            </form>
+
+            <div id="save-message" class="hidden">
+                Stores saved successfully!
+            </div>
+        </section>
+
+        <section class="cta">
+            <h2>Ready to find the best deals?</h2>
+            <a href="/list" class="btn-primary">Start my grocery list</a>
+        </section>
+    </main>
+
+    <script>
+        function saveStores() {
+            const form = document.getElementById('store-form');
+            const formData = new FormData(form);
+
+            fetch('/update-stores', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.status === 'success') {
+                    const msg = document.getElementById('save-message');
+                    msg.classList.remove('hidden');
+                    setTimeout(() => msg.classList.add('hidden'), 3000);
+                }
+            });
+        }
+
+        // Highlight selected store cards
+        document.querySelectorAll('.store-card input').forEach(checkbox => {
+            checkbox.addEventListener('change', function() {
+                this.parentElement.classList.toggle('selected', this.checked);
+            });
+        });
+    </script>
+
+</body>
+</html>
