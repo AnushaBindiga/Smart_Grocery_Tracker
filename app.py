@@ -5,6 +5,8 @@ import os
 
 app = Flask(__name__)
 app.secret_key = "grocery_tracker_secret_key"
+from scheduler import start_scheduler
+scheduler = start_scheduler()
 
 @app.route('/')
 def home():
