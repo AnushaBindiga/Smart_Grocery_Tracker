@@ -11,7 +11,7 @@
     <header>
         <a href="/" class="back-link">← Back</a>
         <h1>My Grocery List</h1>
-        <p>Type or speak your items — separate with commas</p>
+        <p>Add items one by one or use your voice</p>
     </header>
 
     <main>
@@ -19,48 +19,109 @@
         <div class="error-message">{{ error }}</div>
         {% endif %}
 
-        <form action="/results" method="POST">
-            <div class="input-container">
-                <textarea 
-                    name="grocery_list" 
-                    id="grocery-input"
-                    placeholder="e.g. milk, pasta, chicken, olive oil..."
-                    rows="4"
-                ></textarea>
-
-                <button type="button" id="voice-btn" onclick="startVoice()">
-                    🎤 Speak
-                </button>
+        <div class="input-container">
+            <div class="add-item-row">
+                <input 
+                    type="text" 
+                    id="item-input"
+                    placeholder="Type an item e.g. lait, poulet..."
+                    onkeypress="handleEnter(event)"
+                />
+                <button type="button" onclick="addItem()" class="btn-add">+ Add</button>
+                <button type="button" id="voice-btn" onclick="startVoice()">🎤</button>
             </div>
+        </div>
 
-            <div class="items-preview" id="items-preview"></div>
+        <div class="grocery-list-container" id="grocery-list-container">
+            <div id="empty-message" class="empty-message">
+                No items yet — add something above!
+            </div>
+            <ul id="grocery-list"></ul>
+        </div>
 
-            <button type="submit" class="btn-primary">
+        <div id="item-count" class="item-count hidden">0 items added</div>
+
+        <form id="main-form" action="/results" method="POST">
+            <input type="hidden" name="grocery_list" id="grocery-list-hidden"/>
+            <button type="submit" class="btn-primary" id="submit-btn" style="display:none">
                 Find best store →
             </button>
         </form>
     </main>
 
     <script>
-        const input = document.getElementById('grocery-input');
-        const preview = document.getElementById('items-preview');
+        let items = [];
 
-        // Show items as tags while typing
-        input.addEventListener('input', function() {
-            updatePreview();
-        });
+        function handleEnter(event) {
+            if (event.key === 'Enter') {
+                event.preventDefault();
+                addItem();
+            }
+        }
 
-        function updatePreview() {
-            const items = input.value.split(',').filter(i => i.trim());
-            preview.innerHTML = items.map(item => 
-                `<span class="item-tag">${item.trim()}</span>`
-            ).join('');
+        function addItem() {
+            const input = document.getElementById('item-input');
+            const value = input.value.trim();
+            
+            if (!value) return;
+            
+            // Handle comma separated items
+            const newItems = value.split(',').map(i => i.trim()).filter(i => i);
+            
+            newItems.forEach(item => {
+                if (!items.includes(item.toLowerCase())) {
+                    items.push(item.toLowerCase());
+                }
+            });
+            
+            input.value = '';
+            renderList();
+            input.focus();
+        }
+
+        function removeItem(index) {
+            items.splice(index, 1);
+            renderList();
+        }
+
+        function renderList() {
+            const list = document.getElementById('grocery-list');
+            const emptyMsg = document.getElementById('empty-message');
+            const submitBtn = document.getElementById('submit-btn');
+            const itemCount = document.getElementById('item-count');
+            const hiddenInput = document.getElementById('grocery-list-hidden');
+
+            list.innerHTML = '';
+
+            if (items.length === 0) {
+                emptyMsg.style.display = 'block';
+                submitBtn.style.display = 'none';
+                itemCount.classList.add('hidden');
+            } else {
+                emptyMsg.style.display = 'none';
+                submitBtn.style.display = 'inline-block';
+                itemCount.classList.remove('hidden');
+                itemCount.textContent = items.length + ' item(s) added';
+
+                items.forEach((item, index) => {
+                    const li = document.createElement('li');
+                    li.className = 'grocery-item';
+                    li.innerHTML = `
+                        <span class="item-bullet">🛒</span>
+                        <span class="item-text">${item}</span>
+                        <button onclick="removeItem(${index})" class="remove-btn">✕</button>
+                    `;
+                    list.appendChild(li);
+                });
+
+                hiddenInput.value = items.join(',');
+            }
         }
 
         // Voice input
         function startVoice() {
             if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
-                alert('Voice input not supported in this browser. Please use Chrome.');
+                alert('Voice input not supported. Please use Chrome.');
                 return;
             }
 
@@ -72,29 +133,26 @@
             recognition.interimResults = false;
 
             const btn = document.getElementById('voice-btn');
-            btn.textContent = '🔴 Listening...';
-            btn.style.background = '#ff4444';
+            btn.textContent = '🔴';
 
             recognition.onresult = function(event) {
                 const spoken = event.results[0][0].transcript;
-                if (input.value) {
-                    input.value += ', ' + spoken;
-                } else {
-                    input.value = spoken;
-                }
-                updatePreview();
-                btn.textContent = '🎤 Speak';
-                btn.style.background = '';
+                const spokenItems = spoken.split(/,| et | and /).map(i => i.trim()).filter(i => i);
+                spokenItems.forEach(item => {
+                    if (!items.includes(item.toLowerCase())) {
+                        items.push(item.toLowerCase());
+                    }
+                });
+                renderList();
+                btn.textContent = '🎤';
             };
 
             recognition.onerror = function() {
-                btn.textContent = '🎤 Speak';
-                btn.style.background = '';
+                btn.textContent = '🎤';
             };
 
             recognition.onend = function() {
-                btn.textContent = '🎤 Speak';
-                btn.style.background = '';
+                btn.textContent = '🎤';
             };
 
             recognition.start();
